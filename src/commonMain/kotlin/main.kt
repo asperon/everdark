@@ -1,10 +1,11 @@
-import com.soywiz.klogger.Console
 import com.soywiz.korev.Event
 import com.soywiz.korev.addEventListener
 import com.soywiz.korge.Korge
+import com.soywiz.korim.font.*
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korio.lang.UTF8
+import com.soywiz.korio.stream.openSync
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
@@ -14,12 +15,14 @@ const val HEIGHT = 768
 suspend fun main() = Korge(
     width = WIDTH, height = HEIGHT, virtualWidth = WIDTH, virtualHeight = HEIGHT, clipBorders = false
 ) {
-    val texture = resourcesVfs["textures.png"].readBitmap().toBMP32IfRequired()
-    Console.log("0,0 is hex " + texture[10, 0].hexString)
-    Console.log(texture.getRgbaAtIndex(0).hexString)
-
-    val atlas = Json.decodeFromString<Atlas>(resourcesVfs["atlas.json"].readString(UTF8))
-    val gameHolder = GameHolder(this, parseMap(), texture, atlas)
+    val gameHolder = GameHolder(
+        this,
+        parseMap(),
+        resourcesVfs["textures.png"].readBitmap().toBMP32IfRequired(),
+        Json.decodeFromString(resourcesVfs["atlas.json"].readString(UTF8)),
+        loadDialog(),
+        resourcesVfs["roboto-light.ttf"].readFont()
+    )
     addEventListener<GameRestartEvent> {
         gameHolder.restart()
     }
@@ -37,6 +40,15 @@ suspend fun parseMap(): Array<Array<Location>> {
         map.add(newLine.toTypedArray())
     }
     return map.toTypedArray()
+}
+
+suspend fun loadDialog(): Array<String> {
+    val dialog = mutableListOf<String>()
+    val lines = resourcesVfs["dialog.txt"].readLines(UTF8)
+    lines.forEach { line ->
+        dialog.add(line)
+    }
+    return dialog.toTypedArray()
 }
 
 class GameRestartEvent : Event()

@@ -4,13 +4,24 @@ import com.soywiz.korge.view.Stage
 import com.soywiz.korge.view.addUpdater
 import com.soywiz.korge.view.image
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.bitmap.context2d
 import com.soywiz.korim.color.Colors
+import com.soywiz.korim.font.DefaultTtfFont
+import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.TtfFont
+import com.soywiz.korim.paint.ColorPaint
+import com.soywiz.korim.text.DefaultStringTextRenderer
+import com.soywiz.korim.text.HorizontalAlign
+import com.soywiz.korim.text.TextRenderer
+import com.soywiz.korim.text.VerticalAlign
 
 class Game(
     stage: Stage,
     private val map: Array<Array<Location>>,
     private val texture: Bitmap32,
-    private val atlas: Atlas
+    private val atlas: Atlas,
+    private val dialog: Array<String>,
+    private val font: Font
 ) {
 
     private val player = Player(2, 4, Direction.NORTH) { y: Int, x: Int ->
@@ -124,11 +135,20 @@ class Game(
         }
     }
 
+    private fun renderText(text: String): Bitmap32 {
+        return Bitmap32(640, 256, premultiplied = texture.premultiplied).context2d {
+            this.font = DefaultTtfFont
+            this.fontSize = 24.0
+            this.fillStyle = ColorPaint(Colors.WHITE)
+            this.verticalAlign = VerticalAlign.TOP
+            fillText(text, x = 0.0, y = this.fontSize)
+        }
+    }
+
     private fun renderDisplay() {
         player.logPosition()
 
         display.fill(Colors.TRANSPARENT_BLACK)
-
         for (z in -atlas.depth..0) {
             drawFloor(z)
             drawCeiling(z)
@@ -139,9 +159,12 @@ class Game(
         window.fill(Colors.TRANSPARENT_BLACK)
         display.copy(0, 0, window, 0, 0, display.width, display.height)
 
-        when(map[player.playerY][player.playerX].type) {
-            0-> {
-
+        when (map[player.playerY][player.playerX].type) {
+            1 -> {
+                if (map[player.playerY][player.playerX].ref>0) {
+                    val bitmap = renderText(dialog[map[player.playerY][player.playerX].ref])
+                    bitmap.copy(0, 0, window, 0, 480, bitmap.width, bitmap.height)
+                }
             }
         }
 

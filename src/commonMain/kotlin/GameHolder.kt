@@ -5,16 +5,20 @@ import com.soywiz.korge.view.Stage
 import com.soywiz.korge.view.solidRect
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.Colors
+import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.TtfFont
 import com.soywiz.korio.async.launchImmediately
 
 class GameHolder(
     private val stage: Stage,
     private val map: Array<Array<Location>>,
     private val texture: Bitmap32,
-    private val atlas: Atlas
+    private val atlas: Atlas,
+    private val dialog: Array<String>,
+    private val font: Font
 ) {
 
-    private var game = Game(stage, map, texture, atlas)
+    private var game = Game(stage, map, texture, atlas, dialog, font)
 
     // A flag to prevent multiple restarts from happening at the same time
     private var restarting = false
@@ -34,7 +38,7 @@ class GameHolder(
             stage.removeChildren()
 
             // Recreate the game
-            game = Game(stage, map, texture, atlas)
+            game = Game(stage, map, texture, atlas, dialog, font)
 
             restarting = false
         }
