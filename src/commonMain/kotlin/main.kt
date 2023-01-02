@@ -1,11 +1,9 @@
 import com.soywiz.korev.Event
 import com.soywiz.korev.addEventListener
 import com.soywiz.korge.Korge
-import com.soywiz.korim.font.*
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korio.lang.UTF8
-import com.soywiz.korio.stream.openSync
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
@@ -21,7 +19,6 @@ suspend fun main() = Korge(
         resourcesVfs["textures.png"].readBitmap().toBMP32IfRequired(),
         Json.decodeFromString(resourcesVfs["atlas.json"].readString(UTF8)),
         loadDialog(),
-        resourcesVfs["roboto-light.ttf"].readFont()
     )
     addEventListener<GameRestartEvent> {
         gameHolder.restart()
