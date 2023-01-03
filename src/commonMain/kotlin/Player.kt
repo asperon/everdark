@@ -21,10 +21,6 @@ class Player(
             playerX -= vector.x
             playerY -= vector.y
         }
-
-        if (canMoveTo(playerY + 1, playerX)) {
-            playerY++
-        }
     }
 
     fun turnLeft() {
