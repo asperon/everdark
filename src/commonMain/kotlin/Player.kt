@@ -3,7 +3,7 @@ import com.soywiz.klogger.Console
 class Player(
     var playerX: Int,
     var playerY: Int,
-    private var playerDirection: Direction,
+    var playerDirection: Direction,
     val canMoveTo: (y: Int, x: Int) -> Boolean
 ) {
 
@@ -23,6 +23,22 @@ class Player(
         }
     }
 
+    fun moveRight() {
+        val vector = Direction.getVector(playerDirection)
+        if (canMoveTo(playerY + vector.x, playerX + vector.y)) {
+            playerX += vector.y
+            playerY += vector.x
+        }
+    }
+
+    fun moveLeft() {
+        val vector = Direction.getVector(playerDirection)
+        if (canMoveTo(playerY - vector.x, playerX - vector.y)) {
+            playerX -= vector.y
+            playerY -= vector.x
+        }
+    }
+
     fun turnLeft() {
         playerDirection = when (playerDirection) {
             Direction.NORTH -> Direction.WEST
@@ -39,12 +55,6 @@ class Player(
             Direction.SOUTH -> Direction.WEST
             Direction.WEST -> Direction.NORTH
         }
-    }
-
-    fun moveLeft() {
-    }
-
-    fun moveRight() {
     }
 
     fun getPx(x: Int, z: Int): Int {

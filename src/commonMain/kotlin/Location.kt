@@ -1,1 +1,1 @@
-data class Location(val type: Int, val ref: Int)
+data class Location(val type: Int, var ref: Int)
