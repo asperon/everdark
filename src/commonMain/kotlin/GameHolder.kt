@@ -13,9 +13,10 @@ class GameHolder(
     private val texture: Bitmap32,
     private val atlas: Atlas,
     private val dialog: Array<String>,
+    private val additional: Map<Int,Bitmap32>,
 ) {
 
-    private var game = Game(stage, map, texture, atlas, dialog)
+    private var game = Game(stage, map, texture, atlas, dialog, additional)
 
     // A flag to prevent multiple restarts from happening at the same time
     private var restarting = false
@@ -35,7 +36,7 @@ class GameHolder(
             stage.removeChildren()
 
             // Recreate the game
-            game = Game(stage, map, texture, atlas, dialog)
+            game = Game(stage, map, texture, atlas, dialog, additional)
 
             restarting = false
         }

@@ -2,12 +2,12 @@ import com.soywiz.klogger.Console
 import com.soywiz.korev.Key
 import com.soywiz.korge.view.*
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.bitmap.context2d
+import com.soywiz.korim.bitmap.resized
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.font.DefaultTtfFont
-import com.soywiz.korim.paint.ColorPaint
-import com.soywiz.korim.text.VerticalAlign
+import com.soywiz.korma.geom.Anchor
+import com.soywiz.korma.geom.ScaleMode
 
 class Game(
     stage: Stage,
@@ -15,6 +15,7 @@ class Game(
     private val texture: Bitmap32,
     private val atlas: Atlas,
     private val dialog: Array<String>,
+    private val additional: Map<Int, Bitmap32>,
 ) {
 
     private val player = Player(2, 4, Direction.NORTH) { y: Int, x: Int ->
@@ -32,10 +33,10 @@ class Game(
         stage.image(display)
         renderDisplay()
 
-        stage.text(textLog.value.replace("|","\n"), 24.0, RGBA(239, 226, 210), DefaultTtfFont) {
+        stage.text(textLog.value.replace("|", "\n"), 24.0, RGBA(239, 226, 210), DefaultTtfFont) {
             position(0, 500)
             textLog.observe {
-                text = it.replace("|","\n")
+                text = it.replace("|", "\n")
             }
         }
     }
@@ -94,6 +95,9 @@ class Game(
                 if (map[py][px].type == 0) {
                     drawImage("Walls", "front", x, z)
                 }
+                if (map[py][px].type == 2) {
+                    drawImage("Walls", "front", x, z, 2)
+                }
             }
         }
     }
@@ -111,7 +115,7 @@ class Game(
         }
     }
 
-    private fun drawImage(layerType: String, tileType: String, x: Int, z: Int) {
+    private fun drawImage(layerType: String, tileType: String, x: Int, z: Int, type: Int = 0) {
         val layer = atlas.layers.find { it.type == layerType }
         layer?.let {
             val tile = if (tileType == "front") {
@@ -119,7 +123,7 @@ class Game(
             } else {
                 layer.tiles.find { it.type == tileType && it.tile.x == x && it.tile.z == z }
             }
-            tile?.let {
+            tile?.let { it ->
                 val tmpBitmap = Bitmap32(tile.coords.w, tile.coords.h, premultiplied = texture.premultiplied)
                 texture.copy(
                     tile.coords.x, tile.coords.y, tmpBitmap, 0, 0, tile.coords.w, tile.coords.h
@@ -129,6 +133,28 @@ class Game(
                 } else {
                     if (tileType == "front") {
                         display.draw(tmpBitmap, tile.screen.x + (tile.coords.fullWidth * x), tile.screen.y)
+                        if (type > 0) {
+                            val temp = layer.tiles.find { it.type == tileType && it.tile.x == 0 && it.tile.z == -1 }
+                            temp?.let {
+                                val bitmap = additional[type]
+                                bitmap?.let {
+                                    val newWidth = (bitmap.width * (tile.coords.w.toDouble() / temp.coords.w.toDouble())).toInt()
+                                    val newHeight = (bitmap.height * (tile.coords.h.toDouble() / temp.coords.h.toDouble())).toInt()
+                                    val bitmapScaled = bitmap.resized(
+                                        newWidth,
+                                        newHeight,
+                                        ScaleMode.COVER,
+                                        Anchor.CENTER,
+                                        native = true
+                                    ).toBMP32IfRequired()
+                                    display.draw(
+                                        bitmapScaled,
+                                        tile.screen.x + (tile.coords.fullWidth * x) + (tile.coords.w / 2) - (bitmapScaled.width / 2),
+                                        tile.screen.y + tile.coords.h - bitmapScaled.height
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         display.draw(tmpBitmap, tile.screen.x, tile.screen.y)
                     }
@@ -152,7 +178,7 @@ class Game(
 
         when (map[player.playerY][player.playerX].type) {
             1 -> {
-                if (map[player.playerY][player.playerX].ref>0) {
+                if (map[player.playerY][player.playerX].ref > 0) {
                     textLog.update(dialog[map[player.playerY][player.playerX].ref])
                 }
             }
