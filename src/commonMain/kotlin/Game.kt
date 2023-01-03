@@ -15,7 +15,6 @@ class Game(
     private val texture: Bitmap32,
     private val atlas: Atlas,
     private val dialog: Array<String>,
-    private val additional: Map<Int, Bitmap32>,
 ) {
 
     private val player = Player(2, 4, Direction.NORTH) { y: Int, x: Int ->
@@ -75,13 +74,13 @@ class Game(
 
     private fun drawFloor(z: Int) {
         for (x in -atlas.width until atlas.width) {
-            drawImage("Floor", "floor", x, z)
+            drawImage(0, "floor", x, z)
         }
     }
 
     private fun drawCeiling(z: Int) {
         for (x in -atlas.width until atlas.width) {
-            drawImage("Ceiling", "ceiling", x, z)
+            drawImage(1, "ceiling", x, z)
         }
     }
 
@@ -93,10 +92,19 @@ class Game(
 
             if (px >= 0 && py >= 0 && py < map.size && px < map[0].size) {
                 if (map[py][px].type == 0) {
-                    drawImage("Walls", "front", x, z)
+                    drawImage(2, "front", x, z)
                 }
                 if (map[py][px].type == 2) {
-                    drawImage("Walls", "front", x, z, 2)
+                    when(map[py][px].ref) {
+                        1 -> drawImage(4, "front", x, z) // closed door
+                        2 -> drawImage(8, "front", x, z) // open door
+                    }
+                }
+                if (map[py][px].type == 3) {
+                    when(map[py][px].ref) {
+                        1 -> drawImage(9, "front", x, z) // stairs down
+                        2 -> drawImage(10, "front", x, z) // stairs up
+                    }
                 }
             }
         }
@@ -109,21 +117,34 @@ class Game(
 
             if (px >= 0 && py >= 0 && py < map.size && px < map[0].size) {
                 if (map[py][px].type == 0) {
-                    drawImage("Walls", "side", x, z)
+                    drawImage(2, "side", x, z)
                 }
+                if (map[py][px].type == 2) {
+                    when(map[py][px].ref) {
+                        1 -> drawImage(4, "side", x, z) // closed door
+                        2 -> drawImage(8, "side", x, z) // open door
+                    }
+                }
+                if (map[py][px].type == 3) {
+                    when(map[py][px].ref) {
+                        1 -> drawImage(9, "side", x, z) // stairs down
+                        2 -> drawImage(10, "side", x, z) // stairs up
+                    }
+                }
+
             }
         }
     }
 
-    private fun drawImage(layerType: String, tileType: String, x: Int, z: Int, type: Int = 0) {
-        val layer = atlas.layers.find { it.type == layerType }
+    private fun drawImage(layerIndex: Int, tileType: String, x: Int, z: Int) {
+        val layer = atlas.layers.find { it.index == layerIndex }
         layer?.let {
             val tile = if (tileType == "front") {
                 layer.tiles.find { it.type == tileType && it.tile.x == 0 && it.tile.z == z }
             } else {
                 layer.tiles.find { it.type == tileType && it.tile.x == x && it.tile.z == z }
             }
-            tile?.let { it ->
+            tile?.let {
                 val tmpBitmap = Bitmap32(tile.coords.w, tile.coords.h, premultiplied = texture.premultiplied)
                 texture.copy(
                     tile.coords.x, tile.coords.y, tmpBitmap, 0, 0, tile.coords.w, tile.coords.h
@@ -133,28 +154,6 @@ class Game(
                 } else {
                     if (tileType == "front") {
                         display.draw(tmpBitmap, tile.screen.x + (tile.coords.fullWidth * x), tile.screen.y)
-                        if (type > 0) {
-                            val temp = layer.tiles.find { it.type == tileType && it.tile.x == 0 && it.tile.z == -1 }
-                            temp?.let {
-                                val bitmap = additional[type]
-                                bitmap?.let {
-                                    val newWidth = (bitmap.width * (tile.coords.w.toDouble() / temp.coords.w.toDouble())).toInt()
-                                    val newHeight = (bitmap.height * (tile.coords.h.toDouble() / temp.coords.h.toDouble())).toInt()
-                                    val bitmapScaled = bitmap.resized(
-                                        newWidth,
-                                        newHeight,
-                                        ScaleMode.COVER,
-                                        Anchor.CENTER,
-                                        native = true
-                                    ).toBMP32IfRequired()
-                                    display.draw(
-                                        bitmapScaled,
-                                        tile.screen.x + (tile.coords.fullWidth * x) + (tile.coords.w / 2) - (bitmapScaled.width / 2),
-                                        tile.screen.y + tile.coords.h - bitmapScaled.height
-                                    )
-                                }
-                            }
-                        }
                     } else {
                         display.draw(tmpBitmap, tile.screen.x, tile.screen.y)
                     }

@@ -19,7 +19,6 @@ suspend fun main() = Korge(
         resourcesVfs["textures.png"].readBitmap().toBMP32IfRequired(),
         Json.decodeFromString(resourcesVfs["atlas.json"].readString(UTF8)),
         loadDialog(),
-        mapOf(2 to resourcesVfs["door.png"].readBitmap().toBMP32IfRequired()),
     )
     addEventListener<GameRestartEvent> {
         gameHolder.restart()
