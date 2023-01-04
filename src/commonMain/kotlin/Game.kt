@@ -2,12 +2,9 @@ import com.soywiz.klogger.Console
 import com.soywiz.korev.Key
 import com.soywiz.korge.view.*
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.bitmap.resized
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.font.DefaultTtfFont
-import com.soywiz.korma.geom.Anchor
-import com.soywiz.korma.geom.ScaleMode
 
 class Game(
     stage: Stage,
@@ -44,13 +41,12 @@ class Game(
 
     private val stageUpdater = stage.addUpdater {
 
-        if(!gameOver) {
+        if (!gameOver) {
 
             if (input.keys.justPressed(Key.I)) {
                 interact()
                 updateScene()
             }
-
             if (input.keys.justPressed(Key.Q)) {
                 player.turnLeft()
                 updateScene()
@@ -178,9 +174,13 @@ class Game(
             1 -> {
                 if (map[player.playerY][player.playerX].ref > 0) {
                     addText(dialog[map[player.playerY][player.playerX].ref])
-                    map[player.playerY][player.playerX].ref=0
+                    map[player.playerY][player.playerX].ref = 0
                 }
             }
+            2 -> {
+                player.moveAgain()
+            }
+
             3 -> {
                 when (map[player.playerY][player.playerX].ref) {
                     1 -> previousLevel()

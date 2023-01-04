@@ -13,6 +13,7 @@ const val HEIGHT = 768
 suspend fun main() = Korge(
     width = WIDTH, height = HEIGHT, virtualWidth = WIDTH, virtualHeight = HEIGHT, clipBorders = false
 ) {
+
     val gameHolder = GameHolder(
         this,
         parseMap(),

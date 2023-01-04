@@ -7,11 +7,14 @@ class Player(
     val canMoveTo: (y: Int, x: Int) -> Boolean
 ) {
 
+    var lastMove = ::moveForward
+
     fun moveForward() {
         val vector = Direction.getVector(playerDirection)
         if (canMoveTo(playerY + vector.y, playerX + vector.x)) {
             playerX += vector.x
             playerY += vector.y
+            lastMove = ::moveForward
         }
     }
 
@@ -20,6 +23,7 @@ class Player(
         if (canMoveTo(playerY - vector.y, playerX - vector.x)) {
             playerX -= vector.x
             playerY -= vector.y
+            lastMove = ::moveBackward
         }
     }
 
@@ -28,6 +32,7 @@ class Player(
         if (canMoveTo(playerY + vector.x, playerX + vector.y)) {
             playerX += vector.y
             playerY += vector.x
+            lastMove = ::moveRight
         }
     }
 
@@ -36,6 +41,7 @@ class Player(
         if (canMoveTo(playerY - vector.x, playerX - vector.y)) {
             playerX -= vector.y
             playerY -= vector.x
+            lastMove = ::moveLeft
         }
     }
 
@@ -55,6 +61,10 @@ class Player(
             Direction.SOUTH -> Direction.WEST
             Direction.WEST -> Direction.NORTH
         }
+    }
+
+    fun moveAgain() {
+        lastMove()
     }
 
     fun getPx(x: Int, z: Int): Int {
