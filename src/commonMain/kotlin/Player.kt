@@ -1,12 +1,12 @@
 import com.soywiz.klogger.Console
 
 class Player(
-    var playerX: Int,
-    var playerY: Int,
-    var playerDirection: Direction,
     val canMoveTo: (y: Int, x: Int) -> Boolean
 ) {
 
+    var playerX: Int = 0
+    var playerY: Int = 0
+    var playerDirection: Direction = Direction.NORTH
     var lastMove = ::moveForward
 
     fun moveForward() {

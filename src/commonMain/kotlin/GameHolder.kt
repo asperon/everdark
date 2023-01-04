@@ -9,13 +9,12 @@ import com.soywiz.korio.async.launchImmediately
 
 class GameHolder(
     private val stage: Stage,
-    private val map: Array<Array<Location>>,
     private val texture: Bitmap32,
     private val atlas: Atlas,
     private val dialog: Array<String>,
 ) {
 
-    private var game = Game(stage, map, texture, atlas, dialog)
+    private var game = Game(stage, texture, atlas, dialog)
 
     // A flag to prevent multiple restarts from happening at the same time
     private var restarting = false
@@ -35,7 +34,7 @@ class GameHolder(
             stage.removeChildren()
 
             // Recreate the game
-            game = Game(stage, map, texture, atlas, dialog)
+            game = Game(stage, texture, atlas, dialog)
 
             restarting = false
         }

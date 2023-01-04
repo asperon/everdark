@@ -5,16 +5,20 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.font.DefaultTtfFont
+import com.soywiz.korio.async.launchImmediately
+import com.soywiz.korio.file.std.resourcesVfs
+import com.soywiz.korio.lang.UTF8
 
 class Game(
-    stage: Stage,
-    private val map: Array<Array<Location>>,
+    val stage: Stage,
     private val texture: Bitmap32,
     private val atlas: Atlas,
     private val dialog: Array<String>,
 ) {
 
-    private val player = Player(1, 5, Direction.NORTH) { y: Int, x: Int ->
+    private lateinit var map: Array<Array<Location>>
+
+    private val player = Player() { y: Int, x: Int ->
         return@Player (map[y][x].type != 0 && !(map[y][x].type == 2 && map[y][x].ref == 1))
     }
 
@@ -24,19 +28,26 @@ class Game(
 
     private var textLog = com.soywiz.korio.async.ObservableProperty("")
     private var textBuffer = mutableListOf<String>()
+    private var currentLevel = 1
 
-    private var gameOver = false
+    private var gameOver = true
 
     init {
         Console.log("Game loaded")
-        stage.image(display)
-        stage.text(textLog.value.replace("|", "\n"), 24.0, RGBA(239, 226, 210), DefaultTtfFont) {
-            position(0, 500)
-            textLog.observe {
-                text = it.replace("|", "\n")
+        addText("Loading level")
+        stage.launchImmediately {
+            map = loadLevel(currentLevel)
+            setPlayerPosition()
+            stage.image(display)
+            stage.text(textLog.value.replace("|", "\n"), 24.0, RGBA(239, 226, 210), DefaultTtfFont) {
+                position(0, 500)
+                textLog.observe {
+                    text = it.replace("|", "\n")
+                }
             }
+            gameOver = false
+            updateScene()
         }
-        updateScene()
     }
 
     private val stageUpdater = stage.addUpdater {
@@ -76,6 +87,13 @@ class Game(
 
     fun detach() {
         stageUpdater.cancel(GameRestart)
+    }
+
+    private fun setPlayerPosition() {
+        // TODO find stairs in map
+        player.playerX=1
+        player.playerY=5
+        player.playerDirection=Direction.NORTH
     }
 
     private fun drawFloor(z: Int) {
@@ -183,15 +201,15 @@ class Game(
 
             3 -> {
                 when (map[player.playerY][player.playerX].ref) {
-                    1 -> previousLevel()
-                    2 -> nextLevel()
+                    1 -> nextLevel()
+                    2 -> previousLevel()
                 }
             }
         }
         renderDisplay()
     }
 
-    fun interact() {
+    private fun interact() {
         val vector = Direction.getVector(player.playerDirection)
         val y = player.playerY + vector.y
         val x = player.playerX + vector.x
@@ -217,16 +235,27 @@ class Game(
         textLog.update(textBuffer.takeLast(6).toMutableList().joinToString(separator = "|"))
     }
 
-    fun nextLevel() {
-        // TODO load next level
-        addText("This was the last level of the dungeon, laden with treasures |you descend to the surface for some much needed celebration and rest.")
-        gameOver = true
+    private fun nextLevel() {
+        currentLevel++
+        stage.launchImmediately {
+            map = loadLevel(currentLevel)
+            setPlayerPosition()
+            updateScene()
+        }
     }
 
-    fun previousLevel() {
-        // TODO load previous level
-        addText("You leave the dungeon behind and head back to the village you |came from. Maybe you can return some other day.")
-        gameOver = true
+    private fun previousLevel() {
+        currentLevel--
+        if (currentLevel==0) {
+            addText("You leave the dungeon behind and head back to the village you |came from. Maybe you can return some other day.|Game Over")
+            gameOver = true
+        } else {
+            stage.launchImmediately {
+                map = loadLevel(currentLevel)
+                setPlayerPosition()
+                updateScene()
+            }
+        }
     }
 
     private fun renderDisplay() {
@@ -244,6 +273,28 @@ class Game(
 
         display.contentVersion++
     }
+
+    private suspend fun loadLevel(level: Int): Array<Array<Location>> {
+        val map = mutableListOf<Array<Location>>()
+        gameOver = true
+        if (resourcesVfs["level_$level.csv"].exists()) {
+            val lines = resourcesVfs["level_$level.csv"].readLines(UTF8)
+            lines.forEach { line ->
+                val newLine = mutableListOf<Location>()
+                line.split(",").forEach {
+                    val item = it.split(":")
+                    newLine.add(Location(item[0].toInt(), item[1].toInt()))
+                }
+                map.add(newLine.toTypedArray())
+            }
+            gameOver = false
+            return map.toTypedArray()
+        } else {
+            addText("This was the last level of the dungeon, laden with treasures |you descend to the surface for some much needed celebration and rest.|Game Over")
+            return emptyArray()
+        }
+    }
+
 }
 
 // A dummy throwable to cancel updatables
