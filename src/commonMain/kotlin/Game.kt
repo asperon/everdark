@@ -1,3 +1,6 @@
+import actions.Message
+import actions.Move
+import actions.MoveAgain
 import com.soywiz.klogger.Console
 import com.soywiz.korev.Key
 import com.soywiz.korge.view.*
@@ -5,29 +8,22 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.font.DefaultTtfFont
+import com.soywiz.korim.tiles.tiled.readTiledMapData
 import com.soywiz.korio.async.launchImmediately
 import com.soywiz.korio.file.std.resourcesVfs
-import com.soywiz.korio.lang.UTF8
 
 class Game(
     val stage: Stage,
     private val texture: Bitmap32,
     private val atlas: Atlas,
-    private val dialog: Array<String>,
 ) {
 
-    private lateinit var map: Array<Array<Location>>
-
-    private val player = Player() { y: Int, x: Int ->
-        return@Player (map[y][x].type != 0 && !(map[y][x].type == 2 && map[y][x].ref == 1))
-    }
+    private val player = Player()
 
     private val window = Bitmap32(WIDTH, HEIGHT, premultiplied = texture.premultiplied)
     private val display =
         Bitmap32(atlas.resolution.width, atlas.resolution.height, premultiplied = texture.premultiplied)
 
-    private var textLog = com.soywiz.korio.async.ObservableProperty("")
-    private var textBuffer = mutableListOf<String>()
     private var currentLevel = 1
 
     private var gameOver = true
@@ -91,9 +87,9 @@ class Game(
 
     private fun setPlayerPosition() {
         // TODO find stairs in map
-        player.playerX=1
-        player.playerY=5
-        player.playerDirection=Direction.NORTH
+        player.playerX = 1
+        player.playerY = 5
+        player.playerDirection = Direction.NORTH
     }
 
     private fun drawFloor(z: Int) {
@@ -115,20 +111,18 @@ class Game(
             val py = player.getPy(x, z)
 
             if (px >= 0 && py >= 0 && py < map.size && px < map[0].size) {
-                if (map[py][px].type == 0) {
-                    drawImage(3, "front", x, z)
-                }
-                if (map[py][px].type == 2) {
-                    when (map[py][px].ref) {
-                        0 -> drawImage(5, "front", x, z) // open door
-                        1 -> drawImage(4, "front", x, z) // closed door
+                when (map[py][px].type) {
+                    1 -> {
+                        // Door
+                        when (map[py][px].state) {
+                            0 -> drawImage(4, "front", x, z) // closed door
+                            1 -> drawImage(5, "front", x, z) // open door
+
+                        }
                     }
-                }
-                if (map[py][px].type == 3) {
-                    when (map[py][px].ref) {
-                        1 -> drawImage(6, "front", x, z) // stairs down
-                        2 -> drawImage(7, "front", x, z) // stairs up
-                    }
+                    4 -> drawImage(3, "front", x, z) // wall
+                    5 -> drawImage(6, "front", x, z) // stairs down
+                    6 -> drawImage(7, "front", x, z) // stairs up
                 }
             }
         }
@@ -140,22 +134,17 @@ class Game(
             val py = player.getPy(x, z)
 
             if (px >= 0 && py >= 0 && py < map.size && px < map[0].size) {
-                if (map[py][px].type == 0) {
-                    drawImage(3, "side", x, z)
-                }
-                if (map[py][px].type == 2) {
-                    when (map[py][px].ref) {
-                        0 -> drawImage(5, "side", x, z) // open door
-                        1 -> drawImage(4, "side", x, z) // closed door
+                when (map[py][px].type) {
+                    1 -> {
+                        when (map[py][px].state) {
+                            0 -> drawImage(4, "side", x, z) // closed door
+                            1 -> drawImage(5, "side", x, z) // open door
+                        }
                     }
+                    4 -> drawImage(3, "side", x, z) // wall
+                    5 -> drawImage(6, "side", x, z) // stairs down
+                    6 -> drawImage(7, "side", x, z) // stairs up
                 }
-                if (map[py][px].type == 3) {
-                    when (map[py][px].ref) {
-                        1 -> drawImage(6, "side", x, z) // stairs down
-                        2 -> drawImage(7, "side", x, z) // stairs up
-                    }
-                }
-
             }
         }
     }
@@ -187,24 +176,8 @@ class Game(
     }
 
     private fun updateScene() {
-
-        when (map[player.playerY][player.playerX].type) {
-            1 -> {
-                if (map[player.playerY][player.playerX].ref > 0) {
-                    addText(dialog[map[player.playerY][player.playerX].ref])
-                    map[player.playerY][player.playerX].ref = 0
-                }
-            }
-            2 -> {
-                player.moveAgain()
-            }
-
-            3 -> {
-                when (map[player.playerY][player.playerX].ref) {
-                    1 -> nextLevel()
-                    2 -> previousLevel()
-                }
-            }
+        map[player.playerY][player.playerX].actions.forEach {
+            it.execture()
         }
         renderDisplay()
     }
@@ -215,24 +188,19 @@ class Game(
         val x = player.playerX + vector.x
         when (map[y][x].type) {
             2 -> {
-                when (map[y][x].ref) {
+                when (map[y][x].state) {
                     0 -> {
-                        map[y][x].ref = 1
+                        map[y][x].state = 1
                         addText("The door slams shut with a bang, that should keep lesser creatures from passing through")
                     }
 
                     1 -> {
-                        map[y][x].ref = 0
+                        map[y][x].state = 0
                         addText("The door glides open with a shrieking sound, that would be heard many rooms away")
                     }
                 }
             }
         }
-    }
-
-    private fun addText(text: String) {
-        textBuffer.addAll(text.split("|"))
-        textLog.update(textBuffer.takeLast(6).toMutableList().joinToString(separator = "|"))
     }
 
     private fun nextLevel() {
@@ -246,7 +214,7 @@ class Game(
 
     private fun previousLevel() {
         currentLevel--
-        if (currentLevel==0) {
+        if (currentLevel == 0) {
             addText("You leave the dungeon behind and head back to the village you |came from. Maybe you can return some other day.|Game Over")
             gameOver = true
         } else {
@@ -277,15 +245,39 @@ class Game(
     private suspend fun loadLevel(level: Int): Array<Array<Location>> {
         val map = mutableListOf<Array<Location>>()
         gameOver = true
-        if (resourcesVfs["level_$level.csv"].exists()) {
-            val lines = resourcesVfs["level_$level.csv"].readLines(UTF8)
-            lines.forEach { line ->
-                val newLine = mutableListOf<Location>()
-                line.split(",").forEach {
-                    val item = it.split(":")
-                    newLine.add(Location(item[0].toInt(), item[1].toInt()))
+        if (resourcesVfs["level_$level.tmx"].exists()) {
+            try {
+                val tiles = resourcesVfs["level_$level.tmx"].readTiledMapData()
+                for (y in 0 until tiles.height) {
+                    val newLine = mutableListOf<Location>()
+                    for (x in 0 until tiles.width) {
+                        newLine.add(Location(tiles.tileLayers.first()[x, y]))
+                    }
+                    map.add(newLine.toTypedArray())
                 }
-                map.add(newLine.toTypedArray())
+                tiles.objectLayers.find { it.name == "actions" }?.objects?.forEach { obj ->
+                    obj.properties.forEach {
+                        when (it.key) {
+                            "text" -> map[((obj.y / tiles.tileheight).toInt())][((obj.x / tiles.tilewidth).toInt())].actions.add(
+                                Message(it.value.string)
+                            )
+                            "move" -> {
+                                val data = it.value.string.split(",")
+                                map[((obj.y / tiles.tileheight).toInt())][((obj.x / tiles.tilewidth).toInt())].actions.add(
+                                    Move(data[0].toInt(), data[1].toInt(), data[2])
+                                )
+                            }
+                            "moveAgain" -> map[((obj.y / tiles.tileheight).toInt())][((obj.x / tiles.tilewidth).toInt())].actions.add(
+                                MoveAgain()
+                            )
+                        }
+                    }
+                }
+                tiles.objectLayers.find { it.name == "interactions" }?.objects?.forEach {
+
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
             gameOver = false
             return map.toTypedArray()
@@ -295,6 +287,17 @@ class Game(
         }
     }
 
+    companion object {
+
+        private var textBuffer = mutableListOf<String>()
+        var textLog = com.soywiz.korio.async.ObservableProperty("")
+        lateinit var map: Array<Array<Location>>
+
+        fun addText(text: String) {
+            textBuffer.addAll(text.split("|"))
+            textLog.update(textBuffer.takeLast(6).toMutableList().joinToString(separator = "|"))
+        }
+    }
 }
 
 // A dummy throwable to cancel updatables

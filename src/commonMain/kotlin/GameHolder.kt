@@ -11,10 +11,9 @@ class GameHolder(
     private val stage: Stage,
     private val texture: Bitmap32,
     private val atlas: Atlas,
-    private val dialog: Array<String>,
 ) {
 
-    private var game = Game(stage, texture, atlas, dialog)
+    private var game = Game(stage, texture, atlas)
 
     // A flag to prevent multiple restarts from happening at the same time
     private var restarting = false
@@ -34,7 +33,7 @@ class GameHolder(
             stage.removeChildren()
 
             // Recreate the game
-            game = Game(stage, texture, atlas, dialog)
+            game = Game(stage, texture, atlas)
 
             restarting = false
         }

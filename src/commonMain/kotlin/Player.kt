@@ -1,13 +1,29 @@
 import com.soywiz.klogger.Console
+import kotlin.jvm.Volatile
 
-class Player(
-    val canMoveTo: (y: Int, x: Int) -> Boolean
-) {
+class Player {
 
     var playerX: Int = 0
     var playerY: Int = 0
     var playerDirection: Direction = Direction.NORTH
     var lastMove = ::moveForward
+
+    fun setLocation(y:Int, x:Int, direction: String) {
+        playerY = y
+        playerX = x
+        when (direction) {
+            "north" -> playerDirection = Direction.NORTH
+            "south" -> playerDirection = Direction.SOUTH
+            "west" -> playerDirection = Direction.WEST
+            "east" -> playerDirection = Direction.EAST
+            "0" -> {}
+            "90" -> {turnRight()}
+            "180" -> {turnRight()
+            turnRight()}
+            "270" -> {turnLeft()}
+            else -> {}
+        }
+    }
 
     fun moveForward() {
         val vector = Direction.getVector(playerDirection)
@@ -87,5 +103,20 @@ class Player(
 
     fun logPosition() {
         Console.log("Player is at $playerY,$playerX facing $playerDirection")
+    }
+
+    private fun canMoveTo(y: Int, x: Int): Boolean {
+        return (Game.map[y][x].type != 0 && !(Game.map[y][x].type == 2 && Game.map[y][x].state == 1))
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: Player? = null
+        fun getPlayer(): Player {
+            if (INSTANCE == null) {
+                INSTANCE = Player()
+            }
+            return INSTANCE as Player
+        }
     }
 }

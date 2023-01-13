@@ -17,22 +17,11 @@ suspend fun main() = Korge(
     val gameHolder = GameHolder(
         this,
         resourcesVfs["textures.png"].readBitmap().toBMP32IfRequired(),
-        Json.decodeFromString(resourcesVfs["atlas.json"].readString(UTF8)),
-        loadDialog(),
+        Json.decodeFromString(resourcesVfs["atlas.json"].readString(UTF8))
     )
     addEventListener<GameRestartEvent> {
         gameHolder.restart()
     }
-}
-
-
-suspend fun loadDialog(): Array<String> {
-    val dialog = mutableListOf<String>()
-    val lines = resourcesVfs["dialog.txt"].readLines(UTF8)
-    lines.forEach { line ->
-        dialog.add(line)
-    }
-    return dialog.toTypedArray()
 }
 
 class GameRestartEvent : Event()
